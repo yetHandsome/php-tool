@@ -1,0 +1,33 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    volumes:
+      - .\redis.conf:/usr/local/etc/redis/redis.conf:rw
+    networks:
+      my-web-networks:
+        ipv4_address: 172.25.0.220
+    command:
+        /bin/bash -c "redis-server /usr/local/etc/redis/redis.conf "
+  redis_slave1:
+    image: redis:latest
+    ports:
+      - 6380:6379
+    volumes:
+      - .\redis_slave.conf:/usr/local/etc/redis/redis.conf:rw
+    networks:
+      my-web-networks:
+        ipv4_address: 172.25.0.221
+    depends_on:
+      - redis
+    command:
+        /bin/bash -c "redis-server /usr/local/etc/redis/redis.conf "
+networks:
+  my-web-networks:
+    external: true
+    
+#docker network create --driver bridge --subnet 173.25.0.0/8 --gateway 173.25.0.1 redis_net

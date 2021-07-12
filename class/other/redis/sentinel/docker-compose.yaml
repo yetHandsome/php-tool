@@ -1,0 +1,66 @@
+version: '3'
+services:
+  redis-master:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+      - 26379:26379
+    volumes:
+      - .\redis.conf:/usr/local/etc/redis/redis.conf:rw
+      - .\sentinel.conf:/usr/local/etc/redis/sentinel.conf:rw
+    networks:
+      my-web-networks:
+        ipv4_address: 172.25.0.210
+    command:
+      - /bin/sh
+      - -c
+      - |
+        redis-server /usr/local/etc/redis/sentinel.conf --sentinel
+        redis-server /usr/local/etc/redis/redis.conf 
+  redis-Sentinel-slave1:
+    image: redis:latest
+    ports:
+      - 6380:6379
+      - 26380:26379
+    volumes:
+      - .\redis_slave.conf:/usr/local/etc/redis/redis.conf:rw
+      - .\sentinel.conf:/usr/local/etc/redis/sentinel.conf:rw
+    networks:
+      my-web-networks:
+        ipv4_address: 172.25.0.211
+    depends_on:
+      - redis-master
+    command:
+      - /bin/sh
+      - -c
+      - |
+        redis-server /usr/local/etc/redis/sentinel.conf --sentinel
+        redis-server /usr/local/etc/redis/redis.conf 
+
+  redis-Sentinel-slave2:
+    image: redis:latest
+    ports:
+      - 6381:6379
+      - 26381:26379
+    volumes:
+      - .\redis_slave.conf:/usr/local/etc/redis/redis.conf:rw
+      - .\sentinel.conf:/usr/local/etc/redis/sentinel.conf:rw
+    networks:
+      my-web-networks:
+        ipv4_address: 172.25.0.212
+    depends_on:
+      - redis-master
+    command:
+      - /bin/sh
+      - -c
+      - |
+        redis-server /usr/local/etc/redis/sentinel.conf --sentinel
+        redis-server /usr/local/etc/redis/redis.conf 
+
+
+networks:
+  my-web-networks:
+    external: true
+    
