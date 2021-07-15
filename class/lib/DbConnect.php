@@ -5,6 +5,15 @@ namespace lib;
 class DbConnect{
     private static $Instace = [];           ///对象
     
+    // PDO连接参数
+    protected static $params = [
+        \PDO::ATTR_CASE              => \PDO::CASE_NATURAL,//保留数据库驱动返回的列名。
+        \PDO::ATTR_ERRMODE           => \PDO::ERRMODE_EXCEPTION, // 抛出 exceptions 异常。 
+        \PDO::ATTR_ORACLE_NULLS      => \PDO::NULL_NATURAL,//不转换NULL 。
+        \PDO::ATTR_STRINGIFY_FETCHES => false, //提取的时候将数值转换为字符串。
+       \ PDO::ATTR_EMULATE_PREPARES  => false,//禁止PHP模拟预编译
+    ];
+    
     private function __construct(){ //不允许实利化
     }
     
@@ -16,7 +25,7 @@ class DbConnect{
         $name = !empty($name) ? $name : md5(json_encode($params));
         
         //如果没有连接过或者强制重连就连接一次数据库，否则直接返回上次连接对象
-        if(!isset(static::$Instace[$name]) || $justConnet){
+        if(!isset(static::$Instace[$name]) || $reallyConnet){
             static::$Instace[$name] = static::connectDb($params);
         }
         
@@ -45,8 +54,7 @@ class DbConnect{
         $dsn    = "{$dbms}:host={$host};port={$port};{$dbName};{$charset}"; //;charset=utf8设置数据库编码可提高安全性
         
         try {
-            $dbh = new \PDO($dsn, $user, $pass); //初始化一个PDO对象
-            $dbh->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false); //禁止PHP模拟预编译
+            $dbh = new \PDO($dsn, $user, $pass, self::$params); //初始化一个PDO对象
             return $dbh;
         } catch (\PDOException $e) {
             die ("Error!: " . $e->getMessage() . "<br/>");
