@@ -48,16 +48,27 @@ class Model{
         return $this;
     }
     
-    public function insert($map){
+    //$multiple 是否为多条插入
+    //$useTransaction 是否启用事务
+    //单条返回主键id,多条放回成功条数
+    public function insert($map, $multiple = false, $useTransaction = false){
         if (!$map || !is_array($map)) {
             return FALSE;
         } else {
             $fields = $values = array();
-
-            foreach ($map as $key => $value) {
-                $fields[] = '`' . $key . '`';
-                $values[] = ":{$key}";
+            
+            if($multiple){
+                foreach ($map[0] as $key => $value) {
+                    $fields[] = '`' . $key . '`';
+                    $values[] = ":{$key}";
+                }
+            }else{
+                foreach ($map as $key => $value) {
+                    $fields[] = '`' . $key . '`';
+                    $values[] = ":{$key}";
+                }
             }
+            
 
             $fieldString = implode(',', $fields);
             $valueString = implode(',', $values);
@@ -65,29 +76,67 @@ class Model{
             $this->sql = 'INSERT INTO ' . $this->table . " ($fieldString) VALUES ($valueString)";
             
             try {
-                $stmt = $this->getconn()->prepare($this->sql);
+                if($useTransaction){
+                    $this->beginTransaction();
+                }
+                
+                $stmt = @$this->getconn()->prepare($this->sql);
                 if(!$stmt){
                     $this->reportError();
                 }
-                foreach ($map as $key => $value) {
-                    ${$key} = $value;
-                    $stmt->bindParam(":{$key}", ${$key});
-                    //$stmt->bindValue(":{$key}", $value);
+
+                if($multiple){
+                    $successCount = 0;
+                    foreach ($map as $v) {
+                        foreach ($v as $key => $value) {
+                            $bindParamKey = "__bindParam_".$key;
+                            ${$bindParamKey} = $value;
+                            $stmt->bindParam(":{$key}", ${$bindParamKey});
+                        }
+                        $status = $stmt->execute();
+                        if(!$status){
+                            $this->rollBack();
+                            return false;
+                        }
+                        $successCount++;
+                    }
+                    if($useTransaction){
+                        $this->commit();
+                    }
+                    $this->clear();
+                    return $successCount;
+                }else{
+                    foreach ($map as $key => $value) {
+                        $bindParamKey = "__bindParam_".$key;
+                        ${$bindParamKey} = $value;
+                        $stmt->bindParam(":{$key}", ${$bindParamKey});
+                        //$stmt->bindValue(":{$key}", $value);
+                    }
+                    if ($this->run($stmt)) {
+                        return $this->getconn()->lastInsertId();
+                    }
                 }
-                if ($this->run($stmt)) {
-                    return $this->getconn()->lastInsertId();
-                }
+                
             } catch (\PDOException $e) {
+                if($useTransaction){
+                    $this->rollBack();
+                }
                 if ($this->isBreak($e)) {
                     return $this->close()->insert($map);
                 }
-                throw new PDOException($e, $this->params, $this->getSql());
+                throw new PDOException($e, $this->params, $this->getLastsql());
             } catch (\Throwable $e) {
+                if($useTransaction){
+                    $this->rollBack();
+                }
                 if ($this->isBreak($e)) {
                     return $this->close()->insert($map);
                 }
                 throw $e;
             } catch (\Exception $e) {
+                if($useTransaction){
+                    $this->rollBack();
+                }
                 if ($this->isBreak($e)) {
                     return $this->close()->insert($map);
                 }
@@ -115,17 +164,17 @@ class Model{
             $this->sql = 'REPLACE INTO ' . $this->table . " ($fieldString) VALUES ($valueString)";
             
             try {
-                $stmt = $this->getconn()->prepare($this->sql);
+                $stmt = @$this->getconn()->prepare($this->sql);
                 if(!$stmt){
                     $this->reportError();
                 }
                 foreach ($map as $key => $value) {
-                    ${$key} = $value;
-                    $stmt->bindParam(":{$key}", ${$key});
-                    //$stmt->bindValue(":{$key}", $value);
+                    $bindParamKey = "__bindParam_".$key;
+                    ${$bindParamKey} = $value;
+                    $stmt->bindParam(":{$key}", ${$bindParamKey});
                 }
                 if ($this->run($stmt)) {
-                    return $this->getconn()->lastInsertId();
+                    return @$this->getconn()->lastInsertId();
                 }
             } catch (\PDOException $e) {
                 if ($this->isBreak($e)) {
@@ -183,6 +232,7 @@ class Model{
 
     
     public function select(){
+        echo 'select_start:'.PHP_EOL;
         if (isset($this->options['field'])) {
             $field = $this->options['field'];
         } else {
@@ -209,11 +259,9 @@ class Model{
         if (isset($this->options['limit'])) {
             $this->sql .= ' LIMIT ' . $this->options['limit'];
         }
-//        if($field=="(select(DATABASE())) as  db,count(*) as look_num "){
-//            var_dump($this->sql,$this->whereBindParam);die;
-//        }
+
         try {
-            $stmt = $this->getconn()->prepare($this->sql);
+            $stmt = @$this->getconn()->prepare($this->sql);
             if(!$stmt){
                 $this->reportError();
             }
@@ -224,6 +272,7 @@ class Model{
             if ($this->isBreak($e)) {
                 return $this->close()->select();
             }
+            echo 'throw new PDOException'.PHP_EOL;
             throw new PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
@@ -236,7 +285,7 @@ class Model{
             }
             throw $e;
         }
-        
+        echo 'select_return:'.PHP_EOL;
         
         return false;
 
@@ -282,7 +331,7 @@ class Model{
                 $this->sql .= ' LIMIT ' . $this->options['limit'];
             }
             try {
-                 $stmt = $this->getconn()->prepare($this->sql);
+                 $stmt = @$this->getconn()->prepare($this->sql);
                 if(!$stmt){
                     $this->reportError();
                 }
@@ -335,7 +384,7 @@ class Model{
             $this->sql .= ' LIMIT ' . $this->options['limit'];
         }
         try {
-            $stmt = $this->getconn()->prepare($this->sql);
+            $stmt = @$this->getconn()->prepare($this->sql);
             if(!$stmt){
                 $this->reportError();
             }
@@ -369,7 +418,7 @@ class Model{
         $this->whereBindParam = $bind_paramlist;
         
         try {
-            $stmt = $this->getconn()->prepare($this->sql);
+            $stmt = @$this->getconn()->prepare($this->sql);
             if(!$stmt){
                 $this->reportError();
             }
@@ -452,7 +501,7 @@ class Model{
     
     public function where($where,$flag = 'AND'){
         list($where,$whereBindParam) = $this->getSateWhere($where);
-        if($this->options['where']){
+        if(isset($this->options['where'])){
             $this->options['where'] .= ' '.$flag.' '.$where;
         }else{
             $this->options['where'] = $where;
@@ -518,9 +567,8 @@ class Model{
     private function reportError(){
         if($this->showSql){
             exit('预编译失败请检查sql: '.$this->sql.' 是否有误');
-        }else{
-            $this->reportError();
         }
+        exit('预编译失败请检查sql是否有误');
     }
 
 
