@@ -232,7 +232,6 @@ class Model{
 
     
     public function select(){
-        echo 'select_start:'.PHP_EOL;
         if (isset($this->options['field'])) {
             $field = $this->options['field'];
         } else {
