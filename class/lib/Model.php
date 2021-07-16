@@ -432,7 +432,7 @@ class Model{
             }elseif($type == 'DML'){
                 if ($this->run($stmt,$this->whereBindParam)){
                     if ($type2 == 'INSERT') {
-                        $this->getLastInsertId = $pdo->lastInsertId();
+                        $this->getLastInsertId = $stmt->lastInsertId();
                         return $this->getLastInsertId;
                     } else {
                         return $stmt->rowCount();
