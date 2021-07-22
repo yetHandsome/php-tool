@@ -125,7 +125,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->insert($map);
                 }
-                throw new \PDOException($e, $this->params, $this->getSql());
+               throw $e; //new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if($useTransaction){
                     $this->rollBack();
@@ -181,7 +181,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->replace($map);
                 }
-                throw new \PDOException($e, $this->params, $this->getSql());
+               throw $e; //new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if ($this->isBreak($e)) {
                     return $this->close()->replace($map);
@@ -273,7 +273,7 @@ class Model{
                 return $this->close()->select();
             }
             echo 'throw new \PDOException'.PHP_EOL;
-            throw new \PDOException($e, $this->params, $this->getSql());
+            throw $e; //new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->select();
@@ -343,7 +343,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->update($map, $update_all);
                 }
-                throw new \PDOException($e, $this->params, $this->getSql());
+               throw $e; //new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if ($this->isBreak($e)) {
                     return $this->close()->update($map, $update_all);
@@ -395,7 +395,7 @@ class Model{
             if ($this->isBreak($e)) {
                 return $this->close()->delete($delall);
             }
-            throw new \PDOException($e, $this->params, $this->getSql());
+           throw $e; //new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->delete($delall);
@@ -453,7 +453,7 @@ class Model{
             if ($this->isBreak($e)) {
                 return $this->close()->runSql($sql, $bind_paramlist, $type, $type2);
             }
-            throw new \PDOException($e, $this->params, $this->getSql());
+           throw $e; //new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->runSql($sql, $bind_paramlist, $type, $type2);
