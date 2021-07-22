@@ -53,11 +53,11 @@ class DbConnect{
         
         $dsn    = "{$dbms}:host={$host};port={$port};{$dbName};{$charset}"; //;charset=utf8设置数据库编码可提高安全性
         
-        try {
+        //try {
             $dbh = new \PDO($dsn, $user, $pass, self::$params); //初始化一个PDO对象
             return $dbh;
-        } catch (\PDOException $e) {
-            die ("Error!: " . $e->getMessage() . "<br/>");
-        }
+        //} catch (\PDOException $e) {
+            //die ("Error!: " . $e->getMessage() . "<br/>");
+        //}
     }
 }
