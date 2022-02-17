@@ -16,6 +16,8 @@ $db_conf = [
         'password' => "password",
         'charset' => "utf8",
     ];
+	
+
 
 $db1 = new lib\Model($db_conf);
 
@@ -30,3 +32,22 @@ echo sleep(60);
 $res = $db1->table('COLUMNS')->field('count(*) as c')->find();
 
 var_dump($res['c']);
+
+
+//sqlserver PHP环境要有 pdo_sqlsrv 扩展,不想安装可以直接使用docker镜像 captainhub/mssql-php-msphpsql
+$db_sqlserver => [
+	'type' => 'sqlsrv',
+	'hostname' => "127.0.0.1",
+	'hostport' => 1433,
+	'database' => "db_name",
+	'username' => "username",
+	'password' => "password",
+	'charset' => "utf8",
+	'break_reconnect'=>true,
+];
+
+$db2 = new lib\Model($db_sqlserver);
+$sql = 'select count(*) from tb1';
+$res2 = $db2->runSql($sql);
+var_dump($res2);
+

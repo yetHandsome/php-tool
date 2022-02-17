@@ -125,7 +125,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->insert($map);
                 }
-               throw $e; //new \PDOException($e, $this->params, $this->getSql());
+                throw $e;//throw new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if($useTransaction){
                     $this->rollBack();
@@ -181,7 +181,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->replace($map);
                 }
-               throw $e; //new \PDOException($e, $this->params, $this->getSql());
+                throw new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if ($this->isBreak($e)) {
                     return $this->close()->replace($map);
@@ -272,8 +272,8 @@ class Model{
             if ($this->isBreak($e)) {
                 return $this->close()->select();
             }
-            echo 'throw new \PDOException'.PHP_EOL;
-            throw $e; //new \PDOException($e, $this->params, $this->getSql());
+            echo 'throw new \PDOException'.PHP_EOL.$this->getSql().PHP_EOL.'err:'.$e;
+            //throw new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->select();
@@ -343,7 +343,7 @@ class Model{
                 if ($this->isBreak($e)) {
                     return $this->close()->update($map, $update_all);
                 }
-               throw $e; //new \PDOException($e, $this->params, $this->getSql());
+                throw new \PDOException($e, $this->params, $this->getSql());
             } catch (\Throwable $e) {
                 if ($this->isBreak($e)) {
                     return $this->close()->update($map, $update_all);
@@ -395,7 +395,7 @@ class Model{
             if ($this->isBreak($e)) {
                 return $this->close()->delete($delall);
             }
-           throw $e; //new \PDOException($e, $this->params, $this->getSql());
+            throw new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->delete($delall);
@@ -450,10 +450,11 @@ class Model{
                 return $this->run($stmt,$this->whereBindParam);
             }
         } catch (\PDOException $e) {
+            echo $e->getMessage();die;
             if ($this->isBreak($e)) {
                 return $this->close()->runSql($sql, $bind_paramlist, $type, $type2);
             }
-           throw $e; //new \PDOException($e, $this->params, $this->getSql());
+            //throw new \PDOException($e, $this->params, $this->getSql());
         } catch (\Throwable $e) {
             if ($this->isBreak($e)) {
                 return $this->close()->runSql($sql, $bind_paramlist, $type, $type2);
@@ -493,12 +494,29 @@ class Model{
         $sth->execute($this->whereBindParam);
      */
     //提供一个直接写where 的方法以便一些复杂条件，使用这个更方便
-    public function whereStr($str,$whereBindParam_list = array()){
-        $this->options['where'] = $str;
-        $this->whereBindParam   = $whereBindParam_list;
+    public function whereStr($where,$whereBindParam = array()){
+       if(isset($this->options['where'])){
+            $this->options['where'] .= ' and '.$where;
+        }else{
+            $this->options['where'] = $where;
+        }
+        
+        if($whereBindParam){
+            foreach ($whereBindParam as $key => $value) {
+                array_push( $this->whereBindParam,$value);
+            }
+        }
         return $this;
     }
     
+    //$where = ['f1'=>1,'f2'=>['>=',3],'f3'=>['between',[3,4]]];
+    //$res = $db->where($where);
+    //如果一个字段2次出现例如 $where = ['f1'=>1,'f2'=>['>=',3],'f2'=>['<=',10],'f3'=>['between',[3,4]]];
+	//f2 字段出现2次后面会覆盖前面
+	//1.可以分开写2次where
+    //$res = $db->where(['f1'=>1,'f2'=>['>=',3],'f3'=>['between',[3,4]]])->where(['f2'=>['<=',10]]);
+	//2.可以 whereStr 方法
+    //请使用 whereStr 方法 $res = $db->whereStr(" `f1` = ? and  `f2` >= ?  and  `f2` <= ? and  `f3` between ? and ?",[1,2,10,3,4])
     public function where($where,$flag = 'AND'){
         list($where,$whereBindParam) = $this->getSateWhere($where);
         if(isset($this->options['where'])){

@@ -46,18 +46,27 @@ class DbConnect{
         $dbms   = $params['type'];
         $host   = $params['hostname'];
         $port   = $params['hostport'];
-        $dbName = isset($params['database']) ? 'dbname='.$params['database'] : '';
         $user   = $params['username'];
         $pass   = $params['password'];
-        $charset = isset($params['charset']) ? 'charset='.$params['charset'] : '';
+        if($dbms == 'sqlsrv'){
+            $dbName = $params['database'];
+            $dsn = "sqlsrv:server=$host;Database=$dbName";
+            unset(self::$params[\ PDO::ATTR_EMULATE_PREPARES]);//sqlserver 只能允许PHP模拟预编译
+        }else{
+            $dbName = isset($params['database']) ? 'dbname='.$params['database'] : '';
+            
+            $charset = isset($params['charset']) ? 'charset='.$params['charset'] : '';
+
+            $dsn    = "{$dbms}:host={$host};port={$port};{$dbName};{$charset}"; //;charset=utf8设置数据库编码可提高安全性
+        }
         
-        $dsn    = "{$dbms}:host={$host};port={$port};{$dbName};{$charset}"; //;charset=utf8设置数据库编码可提高安全性
         
-        //try {
+        try {
             $dbh = new \PDO($dsn, $user, $pass, self::$params); //初始化一个PDO对象
+            
             return $dbh;
-        //} catch (\PDOException $e) {
-            //die ("Error!: " . $e->getMessage() . "<br/>");
-        //}
+        } catch (\PDOException $e) {
+            die ("Error!: " . $e->getMessage() . "<br/>");
+        }
     }
 }
